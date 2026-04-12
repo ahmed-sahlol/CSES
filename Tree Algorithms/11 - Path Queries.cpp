@@ -138,3 +138,17 @@ void work() {
         }
     }
 }
+int32_t main() {
+#ifndef ONLINE_JUDGE
+    freopen("D:\\Work\\input.txt", "r", stdin);
+    freopen("D:\\Work\\output.txt", "w", stdout);
+#endif
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    cout.tie(0);
+    int tc = 1;
+//    cin >> tc;
+    while (tc--) {
+        work();
+    }
+}
