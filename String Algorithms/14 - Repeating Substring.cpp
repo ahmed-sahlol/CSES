@@ -1,0 +1,142 @@
+#include <bits/stdc++.h>
+ 
+#define int long long
+ 
+#define el '\n'
+ 
+using namespace std;
+ 
+struct Suffix_array {
+    int n, LOG;
+    string s;
+    // p[i] = index of the i-th smallest suffix.
+    // c[i] = rank of suffix starting at i
+    // lcp[i] =  Longest Common Prefix
+    vector<int> p, c, lcp;
+    vector<vector<int>> sp;
+    vector<int> Bin_Log;
+ 
+    Suffix_array(string in) {
+        s = in + "$";
+        n = s.size();
+        p.assign(n + 1, 0);
+        c.assign(n + 1, 0);
+        build0();
+        buildk();
+        lcp.assign(n, 0);
+        build_LCP();
+        Sparse();
+    }
+ 
+    void build0() {
+        vector<pair<char, int>> a;
+        for (int i = 0; i < n; ++i) a.push_back({s[i], i});
+        sort(a.begin(), a.end());
+ 
+        for (int i = 0; i < n; ++i) p[i] = a[i].second;
+        c[p[0]] = 0;
+        for (int i = 1; i < n; ++i) {
+            if (a[i].first != a[i - 1].first) c[p[i]] = c[p[i - 1]] + 1;
+            else c[p[i]] = c[p[i - 1]];
+        }
+    }
+ 
+    void count_sort() {
+        vector<int> freq(n), p_new(n), pos(n);
+        for (int i = 0; i < n; ++i) ++freq[c[i]];
+ 
+        pos[0] = 0;
+        for (int i = 1; i < n; ++i)
+            pos[i] = pos[i - 1] + freq[i - 1];
+ 
+        for (int i = 0; i < n; ++i) p_new[pos[c[p[i]]]] = p[i], ++pos[c[p[i]]];
+ 
+        p = p_new;
+    }
+ 
+    void buildk() {
+        int k = 0;
+        while ((1LL << k) < n) {
+            vector<int> c_new(n);
+            for (int i = 0; i < n; ++i) p[i] = ((p[i] - (1LL << k)) + n) % n;
+            count_sort();
+            c_new[p[0]] = 0;
+            for (int i = 1; i < n; ++i) {
+                pair<int, int> prev = {c[p[i - 1]], c[(p[i - 1] + (1LL << k)) % n]};
+                pair<int, int> now = {c[p[i]], c[(p[i] + (1LL << k)) % n]};
+                if (now != prev) c_new[p[i]] = c_new[p[i - 1]] + 1;
+                else c_new[p[i]] = c_new[p[i - 1]];
+            }
+            c = c_new;
+            ++k;
+        }
+    }
+ 
+    void build_LCP() {
+        int k = 0;
+        for (int i = 0; i < n - 1; ++i) {
+            int pi = c[i];
+            int j = p[pi - 1];
+            while (s[i + k] == s[j + k])++k;
+            lcp[pi] = k;
+            k = max(k - 1, 0LL);
+        }
+    }
+ 
+    void Sparse() {
+        LOG = __lg(n) + 1;
+        sp.assign(n + 5, vector<int>(LOG + 2));
+        Bin_Log.assign(n + 5, 0);
+        for (int i = 2; i <= n; i++) Bin_Log[i] = Bin_Log[i >> 1] + 1;
+        for (int i = 0; i < n; i++)
+            sp[i][0] = lcp[i];
+        for (int log = 1; log < LOG; log++)
+            for (int i = 0; i + (1 << log) - 1 < n; i++)
+                sp[i][log] = min(sp[i][log - 1], sp[i + (1 << (log - 1))][log - 1]);
+    }
+ 
+    int query(int L, int R) {
+        int log = Bin_Log[R - L + 1];
+        return min(sp[L][log], sp[R - (1 << log) + 1][log]);
+    }
+ 
+    int LCP(int i, int j) {
+        return query(min(c[i], c[j]) + 1, max(c[i], c[j]));
+    }
+ 
+    int compare_substring(pair<int, int> a, pair<int, int> b) {
+        int l1 = a.first, r1 = a.second;
+        int l2 = b.first, r2 = b.second;
+        int k = min({LCP(l1, l2), r1 - l1 + 1, r2 - l2 + 1});
+        l1 += k, l2 += k;
+        if (l1 > r1 and l2 > r2) return 0;
+        if (l1 > r1) return -1;
+        if (l2 > r2) return 1;
+        return (s[l1] > s[l2] ? 1 : -1);
+    }
+};
+ 
+ 
+void work() {
+    string s;
+    cin >> s;
+    Suffix_array suff(s);
+    int sz = s.size(), ans = sz * (sz + 1) / 2;
+    string res = "";
+    for (int i = 1; i <= sz; ++i)
+        if (suff.lcp[i] > res.size())
+            res = s.substr(suff.p[i], suff.lcp[i]);
+    if (res.size() == 0) res = "-1";
+    cout << res << el;
+}
+ 
+int32_t main() {
+    ios_base::sync_with_stdio(0);
+    cin.tie(0), cout.tie(0);
+    int tc = 1;
+//    cin >> tc;
+    for (int T = 1; T <= tc; ++T) {
+//        cout << "Case " << T << ": ";
+        work();
+    }
+}
